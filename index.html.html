@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 移动端核心设置：禁止缩放，适配手机宽度 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TCGA-HCC 2-CpG甲基化预后预测工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        body {
+            max-width:720px;
+            margin:1.5rem auto;
+            padding:0 0.8rem;
+            color:#222;
+            background:#f8f9fa;
+        }
+        .card {
+            background:white;
+            padding:1.5rem;
+            border-radius:12px;
+            box-shadow:0 2px 10px #00000012;
+        }
+        h1 {
+            font-size:1.25rem;
+            text-align:center;
+            margin-top:0;
+            color:#1f4e79;
+        }
+        .desc {
+            font-size:0.85rem;
+            color:#555;
+            text-align:center;
+            margin-bottom:1.5rem;
+            line-height:1.5;
+        }
+        .form-item {
+            margin-bottom:1.2rem;
+        }
+        label {
+            display:block;
+            margin-bottom:0.4rem;
+            font-weight:500;
+            font-size:0.95rem;
+        }
+        input {
+            width:100%;
+            padding:0.9rem;
+            border:1px solid #ccd6dd;
+            border-radius:8px;
+            font-size:1rem;
+        }
+        .tip {
+            font-size:0.78rem;
+            color:#777;
+            margin-top:0.2rem;
+        }
+        button {
+            width:100%;
+            padding:0.95rem;
+            background:#1f4e79;
+            color:white;
+            border:none;
+            border-radius:8px;
+            font-size:1rem;
+            cursor:pointer;
+            margin-top:0.3rem;
+        }
+        button:active {
+            background:#163859;
+        }
+        #result {
+            margin-top:1.5rem;
+            padding:1.2rem;
+            border-radius:8px;
+            display:none;
+        }
+        .high-risk {
+            background:#fff2f2;
+            border:1px solid #f7a8a8;
+        }
+        .low-risk {
+            background:#f0f8ff;
+            border:1px solid #94c5f0;
+        }
+        .model-info {
+            margin-top:1.5rem;
+            font-size:0.8rem;
+            color:#444;
+            border-top:1px solid #eee;
+            padding-top:1rem;
+            line-height:1.5;
+        }
+        .warn {
+            color:#c92a2a;
+            font-size:0.9rem;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>TCGA-HCC 2-CpG甲基化预后预测工具</h1>
+    <p class="desc">基于cg26437306(LIFR)、cg11234457(FTMT)构建肝癌预后模型<br>RiskScore = 2.2495 × β<sub>cg26437306</sub> − 1.0574 × β<sub>cg11234457</sub><br>Cutoff值：0.7246086</p>
+
+    <div class="form-item">
+        <label>cg26437306（LIFR）甲基化β值</label>
+        <input type="number" id="cg1" min="0" max="1" step="0.0001" placeholder="范围0~1，例如0.42">
+        <div class="tip">β值介于0（完全未甲基化）~1（完全甲基化）</div>
+    </div>
+    <div class="form-item">
+        <label>cg11234457（FTMT）甲基化β值</label>
+        <input type="number" id="cg2" min="0" max="1" step="0.0001" placeholder="范围0~1，例如0.18">
+        <div class="tip">β值介于0（完全未甲基化）~1（完全甲基化）</div>
+    </div>
+
+    <button onclick="calcRisk()">计算预后风险</button>
+
+    <div id="result"></div>
+
+    <div class="model-info">
+        <strong>模型信息（Cox回归，n=372，OS事件132例）</strong><br>
+        cg26437306：coef=2.2495，HR=9.48，95%CI[3.39,26.56]，P=1.87e-05<br>
+        cg11234457：coef=-1.0574，HR=0.35，95%CI[0.14,0.84]，P=0.0196<br>
+        Concordance index=0.609<br>
+        <span style="color:#c92a2a;">⚠️ 本工具仅为科研课题演示，不可直接用于临床诊疗。</span>
+    </div>
+</div>
+
+<script>
+const cutoff = 0.7246086;
+function calcRisk(){
+    const cg1Val = parseFloat(document.getElementById("cg1").value);
+    const cg2Val = parseFloat(document.getElementById("cg2").value);
+    const resDom = document.getElementById("result");
+
+    if(isNaN(cg1Val) || isNaN(cg2Val)){
+        resDom.style.display = "block";
+        resDom.className = "";
+        resDom.innerHTML = `<div class="warn">请输入两个CpG位点的β值！</div>`;
+        return;
+    }
+    if(cg1Val <0 || cg1Val>1 || cg2Val<0 || cg2Val>1){
+        resDom.style.display = "block";
+        resDom.className = "";
+        resDom.innerHTML = `<div class="warn">β值必须在0 ~ 1之间，请检查输入！</div>`;
+        return;
+    }
+
+    // RiskScore计算公式
+    const riskScore = 2.2495 * cg1Val - 1.0574 * cg2Val;
+    const riskGroup = riskScore >= cutoff ? "High risk（高风险组）" : "Low risk（低风险组）";
+    const cssClass = riskScore >= cutoff ? "high-risk" : "low-risk";
+
+    resDom.style.display = "block";
+    resDom.className = cssClass;
+    resDom.innerHTML = `
+        <div><strong>计算结果</strong></div>
+        <div style="margin-top:0.6rem;">RiskScore：${riskScore.toFixed(6)}</div>
+        <div style="margin-top:0.4rem;">风险分组：<strong>${riskGroup}</strong></div>
+        <div style="margin-top:0.4rem;">Cutoff阈值：0.7246086</div>
+    `;
+}
+</script>
+</body>
+</html>
