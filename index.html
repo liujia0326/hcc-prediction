@@ -1,167 +1,764 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <!-- 移动端核心设置：禁止缩放，适配手机宽度 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TCGA-HCC 2-CpG甲基化预后预测工具</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-        body {
-            max-width:720px;
-            margin:1.5rem auto;
-            padding:0 0.8rem;
-            color:#222;
-            background:#f8f9fa;
-        }
-        .card {
-            background:white;
-            padding:1.5rem;
-            border-radius:12px;
-            box-shadow:0 2px 10px #00000012;
-        }
-        h1 {
-            font-size:1.25rem;
-            text-align:center;
-            margin-top:0;
-            color:#1f4e79;
-        }
-        .desc {
-            font-size:0.85rem;
-            color:#555;
-            text-align:center;
-            margin-bottom:1.5rem;
-            line-height:1.5;
-        }
-        .form-item {
-            margin-bottom:1.2rem;
-        }
-        label {
-            display:block;
-            margin-bottom:0.4rem;
-            font-weight:500;
-            font-size:0.95rem;
-        }
-        input {
-            width:100%;
-            padding:0.9rem;
-            border:1px solid #ccd6dd;
-            border-radius:8px;
-            font-size:1rem;
-        }
-        .tip {
-            font-size:0.78rem;
-            color:#777;
-            margin-top:0.2rem;
-        }
-        button {
-            width:100%;
-            padding:0.95rem;
-            background:#1f4e79;
-            color:white;
-            border:none;
-            border-radius:8px;
-            font-size:1rem;
-            cursor:pointer;
-            margin-top:0.3rem;
-        }
-        button:active {
-            background:#163859;
-        }
-        #result {
-            margin-top:1.5rem;
-            padding:1.2rem;
-            border-radius:8px;
-            display:none;
-        }
-        .high-risk {
-            background:#fff2f2;
-            border:1px solid #f7a8a8;
-        }
-        .low-risk {
-            background:#f0f8ff;
-            border:1px solid #94c5f0;
-        }
-        .model-info {
-            margin-top:1.5rem;
-            font-size:0.8rem;
-            color:#444;
-            border-top:1px solid #eee;
-            padding-top:1rem;
-            line-height:1.5;
-        }
-        .warn {
-            color:#c92a2a;
-            font-size:0.9rem;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HCC 甲基化诊断与预后评估工具 | 宜昌市中心人民医院</title>
+<style>
+/* ============ 设计令牌 ============ */
+:root{
+  --bg:#F2F6F8;
+  --card:#FFFFFF;
+  --ink:#15324B;
+  --muted:#5B7285;
+  --line:#DCE5EB;
+  --line-strong:#C6D3DC;
+  --accent:#14607F;
+  --accent-deep:#0F4761;
+  --accent-soft:#E7F0F5;
+  --pos:#C2413C;
+  --pos-ink:#9E2F2B;
+  --pos-soft:#F9E9E8;
+  --neg:#2E7D5B;
+  --neg-ink:#1F5A41;
+  --neg-soft:#E7F2EC;
+  --amber:#C98A2D;
+  --warn-ink:#8A5A14;
+  --warn-soft:#FBF1E0;
+  --danger:#B3261E;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(21,50,75,.05),0 10px 28px rgba(21,50,75,.07);
+  --font-display:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,"SimSun",serif;
+  --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  line-height:1.65;
+  min-height:100vh;
+}
+/* ============ 布局 ============ */
+.wrap{max-width:960px;margin:0 auto;padding:40px 20px 64px}
+@media (max-width:640px){.wrap{padding:24px 14px 48px}}
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:26px 28px;
+  margin-top:22px;
+}
+@media (max-width:640px){.card{padding:20px 16px}}
+.card h2{
+  font-family:var(--font-display);
+  font-size:18px;
+  font-weight:700;
+  letter-spacing:.02em;
+  margin-bottom:4px;
+}
+.card .card-sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+.section-label{
+  display:inline-block;
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.14em;
+  color:var(--accent);
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+/* ============ 头部 ============ */
+.hero{padding:30px 0 6px;text-align:center}
+.hero h1{
+  font-family:var(--font-display);
+  font-size:36px;
+  font-weight:900;
+  line-height:1.3;
+  letter-spacing:.02em;
+}
+.hero .org{
+  margin-top:12px;
+  font-size:15px;
+  color:var(--muted);
+  letter-spacing:.1em;
+}
+@media (max-width:640px){.hero h1{font-size:22px;white-space:nowrap}.hero .org{font-size:14px}}
+@media (max-width:640px){
+  .verdict-cell{font-size:14px;padding:12px 4px}
+  .risk-box{flex-direction:column;align-items:flex-start;gap:2px}
+  .risk-box .risk-value{font-size:20px}
+}
+/* ============ 表单 ============ */
+.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:760px){.fields{grid-template-columns:1fr;gap:14px}}
+.field label{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  margin-bottom:6px;
+}
+.field .unit{color:var(--muted);font-weight:400;font-size:12px}
+.field input{
+  width:100%;
+  height:46px;
+  padding:0 12px;
+  font-size:15px;
+  font-family:var(--font-body);
+  color:var(--ink);
+  background:#FBFDFE;
+  border:1px solid var(--line-strong);
+  border-radius:8px;
+  outline:none;
+  transition:border-color .15s,box-shadow .15s,background .15s;
+  font-variant-numeric:tabular-nums;
+}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(20,96,127,.14);background:#fff}
+.field input.invalid{border-color:var(--danger);background:var(--pos-soft)}
+.field input.invalid:focus{box-shadow:0 0 0 3px rgba(179,38,30,.12)}
+.field .err{
+  display:block;
+  min-height:18px;
+  margin-top:5px;
+  font-size:12px;
+  color:var(--danger);
+}
+.field .hint{display:block;margin-top:2px;font-size:12px;color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;align-items:center}
+.actions>button{flex:1 1 0;min-width:0}
+.btn{
+  appearance:none;
+  border:none;
+  cursor:pointer;
+  font-family:var(--font-body);
+  font-size:14px;
+  font-weight:600;
+  border-radius:8px;
+  padding:0 20px;
+  height:44px;
+  transition:background .15s,color .15s,border-color .15s,transform .05s;
+}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-deep)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line-strong)}
+.btn-ghost:hover{color:var(--ink);border-color:var(--muted)}
+.examples{margin-left:auto;display:flex;gap:10px;flex:1 1 0;min-width:0}
+@media (max-width:640px){.examples{margin-left:0;flex:1 1 100%}}
+.examples .btn{
+  flex:1 1 0;
+  height:44px;
+  padding:0 20px;
+  font-size:14px;
+  font-weight:600;
+  background:var(--accent-soft);
+  color:var(--accent-deep);
+  border:1px solid var(--line);
+}
+.examples .btn:hover{border-color:var(--accent)}
+.field select{
+  width:100%;
+  height:46px;
+  padding:0 12px;
+  font-size:15px;
+  font-family:var(--font-body);
+  color:var(--ink);
+  background:#FBFDFE;
+  border:1px solid var(--line-strong);
+  border-radius:8px;
+  outline:none;
+  transition:border-color .15s,box-shadow .15s;
+  cursor:pointer;
+}
+.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(20,96,127,.14)}
+.surv-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.surv-card{border:1px solid var(--line);border-radius:10px;padding:12px 10px;text-align:center;background:var(--card)}
+.surv-card .s-label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+.surv-card .s-value{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.surv-card .s-value.ok{color:var(--neg)}
+.surv-card .s-value.mid{color:#b8860b}
+.surv-card .s-value.bad{color:var(--pos-ink)}
+@media (max-width:640px){.surv-card .s-value{font-size:18px}}
+/* ============ 结果区（内联） ============ */
+.result-inline{
+  display:none;
+  margin-top:26px;
+  padding-top:22px;
+  border-top:1px solid var(--line);
+}
+.result-inline.show{display:block}
+.verdict-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:22px;
+}
+.verdict-cell{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  border:1px solid transparent;
+  padding:14px 8px;
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:.02em;
+  text-align:center;
+  white-space:nowrap;
+}
+.verdict-row.pos .verdict-cell{background:var(--pos-soft);color:var(--pos-ink);border-color:#EACCC9}
+.verdict-row.neg .verdict-cell{background:var(--neg-soft);color:var(--neg-ink);border-color:#C9E2D4}
+.risk-box{
+  width:100%;
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#FBFDFE;
+  padding:12px 18px;
+  margin:0 0 22px;
+}
+.risk-box .risk-label{font-size:12px;color:var(--muted)}
+.risk-box .risk-value{
+  font-size:24px;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  font-family:var(--font-display);
+}
+.cutoff-note{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:6px;
+}
+/* ============ 判读标尺（签名元素） ============ */
+.gauge{padding:8px 0 4px;margin:4px 0 10px}
+.gauge-callout{
+  position:relative;
+  height:32px;
+  margin-bottom:8px;
+}
+.gauge-bubble{
+  position:absolute;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  background:var(--ink);
+  color:#fff;
+  font-size:12px;
+  font-weight:600;
+  font-variant-numeric:tabular-nums;
+  padding:4px 10px;
+  border-radius:6px;
+  letter-spacing:.01em;
+}
+.gauge-bubble.pos{background:var(--pos);color:#fff}
+.gauge-bubble.neg{background:var(--neg);color:#fff}
+.gauge-bubble::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-5px;
+  transform:translateX(-50%);
+  border:5px solid transparent;
+  border-top-color:var(--ink);
+  border-bottom:none;
+}
+.gauge-bubble.pos::after{border-top-color:var(--pos)}
+.gauge-bubble.neg::after{border-top-color:var(--neg)}
+.gauge-track{
+  position:relative;
+  height:16px;
+  border-radius:999px;
+  overflow:hidden;
+  border:1px solid rgba(21,50,75,.12);
+}
+.gauge-neg{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--neg),var(--amber))}
+.gauge-pos{position:absolute;inset:0 0 0 auto;background:var(--pos)}
+.gauge-cutoff{
+  position:absolute;
+  top:-4px;
+  bottom:-4px;
+  width:0;
+  border-left:2px dashed #fff;
+  z-index:2;
+}
+.gauge-cutoff .glabel{
+  position:absolute;
+  top:-24px;
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--warn-soft);
+  color:var(--warn-ink);
+  border:1px solid var(--amber);
+  font-size:11px;
+  font-weight:700;
+  padding:1px 7px;
+  border-radius:999px;
+  white-space:nowrap;
+}
+.gauge-marker{
+  position:absolute;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:#fff;
+  border:5px solid var(--ink);
+  box-shadow:0 1px 4px rgba(21,50,75,.4);
+  z-index:3;
+}
+.gauge-labels{
+  display:flex;
+  justify-content:space-between;
+  margin-top:6px;
+  font-size:11px;
+  color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.gauge-zone-label{font-size:11px;color:var(--muted)}
+/* ============ 表格 ============ */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13.5px;
+  min-width:520px;
+}
+th,td{
+  padding:10px 12px;
+  text-align:right;
+  border-bottom:1px solid var(--line);
+  font-variant-numeric:tabular-nums;
+}
+th:first-child,td:first-child{text-align:left}
+thead th{
+  font-size:12px;
+  font-weight:700;
+  color:var(--muted);
+  background:#F7FAFC;
+  border-bottom:1px solid var(--line-strong);
+  white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#FAFCFD}
+td.num{font-family:"Consolas","Menlo",monospace;font-size:13px}
+.footnote{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.7}
+/* ============ 预后模型信息 ============ */
+.model-info{
+  margin-top:18px;
+  font-size:12px;
+  color:var(--muted);
+  border-top:1px solid var(--line);
+  padding-top:12px;
+  line-height:1.9;
+}
+.model-info strong{color:var(--ink);font-weight:600}
+.warn-note{color:var(--pos-ink);font-weight:600}
+/* ============ 页脚 ============ */
+footer{margin-top:28px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);line-height:1.9}
+footer strong{color:var(--ink);font-weight:600}
+footer .disclaimer{margin-top:10px;padding:12px 14px;background:var(--warn-soft);border:1px solid #EBD9B0;border-radius:8px;color:var(--warn-ink)}
+/* ============ 可访问性 ============ */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
 </head>
 <body>
-<div class="card">
-    <h1>TCGA-HCC 2-CpG甲基化预后预测工具</h1>
-    <p class="desc">基于cg26437306(LIFR)、cg11234457(FTMT)构建肝癌预后模型<br>RiskScore = 2.2495 × β<sub>cg26437306</sub> − 1.0574 × β<sub>cg11234457</sub><br>Cutoff值：0.7246086</p>
+<div class="wrap">
 
-    <div class="form-item">
-        <label>cg26437306（LIFR）甲基化β值</label>
-        <input type="number" id="cg1" min="0" max="1" step="0.0001" placeholder="范围0~1，例如0.42">
-        <div class="tip">β值介于0（完全未甲基化）~1（完全甲基化）</div>
+  <!-- ===== 头部 ===== -->
+  <header class="hero">
+    <h1>HCC 甲基化诊断与预后评估工具</h1>
+    <p class="org">宜昌市中心人民医院</p>
+  </header>
+
+  <!-- ===== 诊断模型 ===== -->
+  <section class="card" aria-label="诊断模型">
+    <h2>诊断模型</h2>
+    <p class="card-sub">基于 FTMT、LIFR 甲基化 β 值与血清 AFP 的肝癌诊断 Logistic 回归模型。</p>
+    <form id="calcForm" novalidate>
+      <div class="fields">
+        <div class="field">
+          <label for="ftmt">FTMT β 值 <span class="unit">（甲基化 β，0~1）</span></label>
+          <input id="ftmt" name="ftmt" type="number" inputmode="decimal" step="0.0001" min="0" max="1" placeholder="如 0.3500" autocomplete="off">
+          <span class="err" id="ftmtErr" role="alert"></span>
+        </div>
+        <div class="field">
+          <label for="lifr">LIFR β 值 <span class="unit">（甲基化 β，0~1）</span></label>
+          <input id="lifr" name="lifr" type="number" inputmode="decimal" step="0.0001" min="0" max="1" placeholder="如 0.2000" autocomplete="off">
+          <span class="err" id="lifrErr" role="alert"></span>
+        </div>
+        <div class="field">
+          <label for="afp">AFP 值 <span class="unit">（ng/mL）</span></label>
+          <input id="afp" name="afp" type="number" inputmode="decimal" step="any" min="0" placeholder="如 150.0" autocomplete="off">
+          <span class="err" id="afpErr" role="alert"></span>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">开始诊断评估</button>
+        <button type="button" class="btn btn-ghost" id="resetBtn">清空</button>
+        <div class="examples">
+          <button type="button" class="btn" data-example="pos">填入示例 · 阳性</button>
+          <button type="button" class="btn" data-example="neg">填入示例 · 阴性</button>
+        </div>
+      </div>
+
+      <!-- ===== 判读结果（内联于输入区） ===== -->
+      <div class="result-inline" id="result" aria-live="polite">
+    <div class="verdict-row" id="verdictRow">
+      <div class="verdict-cell" id="verdictMain">—</div>
+      <div class="verdict-cell" id="verdictProb">—</div>
     </div>
-    <div class="form-item">
-        <label>cg11234457（FTMT）甲基化β值</label>
-        <input type="number" id="cg2" min="0" max="1" step="0.0001" placeholder="范围0~1，例如0.18">
-        <div class="tip">β值介于0（完全未甲基化）~1（完全甲基化）</div>
+    <div class="risk-box">
+      <span class="risk-label">RiskScore（线性预测值）</span>
+      <span class="risk-value" id="riskVal">—</span>
     </div>
 
-    <button onclick="calcRisk()">计算预后风险</button>
+    <!-- 判读标尺 -->
+    <div class="gauge" aria-hidden="true">
+      <div class="gauge-callout"><div class="gauge-bubble" id="gaugeBubble">概率—</div></div>
+      <div class="gauge-track">
+        <div class="gauge-neg" id="gaugeNeg"></div>
+        <div class="gauge-pos" id="gaugePos"></div>
+        <div class="gauge-cutoff" id="gaugeCutoff"><span class="glabel">Cutoff 0.9018</span></div>
+        <div class="gauge-marker" id="gaugeMarker"></div>
+      </div>
+      <div class="gauge-labels">
+        <span>0</span>
+        <span class="gauge-zone-label">阴性区</span>
+        <span>0.5</span>
+        <span class="gauge-zone-label">阳性区</span>
+        <span>1</span>
+      </div>
+    </div>
 
-    <div id="result"></div>
+    <p class="footnote" id="interpretation" style="margin-top:14px"></p>
+      </div>
+    </form>
+  </section>
 
+  <!-- ===== 预后模型 ===== -->
+  <section class="card" aria-label="预后模型">
+    <h2>预后模型</h2>
+    <p class="card-sub">联合 Cox 模型：年龄、TNM 分期与 cg26437306 甲基化 β 值，预测总体生存（OS）风险与 1/3/5 年生存概率。</p>
+    <form id="progForm" novalidate>
+      <div class="fields">
+        <div class="field">
+          <label for="age">年龄 <span class="unit">（岁）</span></label>
+          <input id="age" name="age" type="number" inputmode="decimal" step="any" min="0" max="120" placeholder="如 58" autocomplete="off">
+          <span class="err" id="ageErr" role="alert"></span>
+        </div>
+        <div class="field">
+          <label for="stage">TNM 分期</label>
+          <select id="stage" name="stage">
+            <option value="I">I 期</option>
+            <option value="II">II 期</option>
+            <option value="III">III 期</option>
+            <option value="IV">IV 期</option>
+          </select>
+          <span class="hint">I 期为参考组（系数 0）</span>
+        </div>
+        <div class="field">
+          <label for="cg1">cg26437306（LIFR）β 值 <span class="unit">（甲基化 β，0~1）</span></label>
+          <input id="cg1" name="cg1" type="number" inputmode="decimal" step="0.0001" min="0" max="1" placeholder="范围0~1，例如0.42" autocomplete="off">
+          <span class="err" id="cg1Err" role="alert"></span>
+          <span class="hint">β 值介于 0（完全未甲基化）~ 1（完全甲基化）</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">计算预后风险</button>
+        <button type="button" class="btn btn-ghost" id="progResetBtn">清空</button>
+        <div class="examples">
+          <button type="button" class="btn" data-prog-example="high">填入示例 · 高风险</button>
+          <button type="button" class="btn" data-prog-example="low">填入示例 · 低风险</button>
+        </div>
+      </div>
+
+      <div class="result-inline" id="progResult" aria-live="polite">
+        <div class="verdict-row" id="progVerdictRow">
+          <div class="verdict-cell" id="progMain">—</div>
+          <div class="verdict-cell" id="progRs">—</div>
+        </div>
+        <div class="risk-box">
+          <span class="risk-label">LP 线性预测值</span>
+          <span class="risk-value" id="progLp">—</span>
+        </div>
+        <div class="surv-cards">
+          <div class="surv-card"><span class="s-label">1 年生存率</span><span class="s-value" id="progS1">—</span></div>
+          <div class="surv-card"><span class="s-label">3 年生存率</span><span class="s-value" id="progS3">—</span></div>
+          <div class="surv-card"><span class="s-label">5 年生存率</span><span class="s-value" id="progS5">—</span></div>
+        </div>
+        <div class="gauge" aria-hidden="true">
+          <div class="gauge-callout"><div class="gauge-bubble" id="progBubble">—</div></div>
+          <div class="gauge-track">
+            <div class="gauge-neg" id="progNeg"></div>
+            <div class="gauge-pos" id="progPos"></div>
+            <div class="gauge-cutoff" id="progCutoff"><span class="glabel">Cutoff 0.7246</span></div>
+            <div class="gauge-marker" id="progMarker"></div>
+          </div>
+          <div class="gauge-labels">
+            <span>0</span>
+            <span class="gauge-zone-label">低风险区</span>
+            <span>1</span>
+            <span class="gauge-zone-label">高风险区</span>
+            <span>2.32</span>
+          </div>
+        </div>
+        <p class="footnote" id="progInterpretation" style="margin-top:14px"></p>
+      </div>
+    </form>
     <div class="model-info">
-        <strong>模型信息（Cox回归，n=372，OS事件132例）</strong><br>
-        cg26437306：coef=2.2495，HR=9.48，95%CI[3.39,26.56]，P=1.87e-05<br>
-        cg11234457：coef=-1.0574，HR=0.35，95%CI[0.14,0.84]，P=0.0196<br>
-        Concordance index=0.609<br>
-        <span style="color:#c92a2a;">⚠️ 本工具仅为科研课题演示，不可直接用于临床诊疗。</span>
+      <strong>模型信息（联合 Cox 模型）</strong><br>
+      RiskScore = 2.3215 × β(cg26437306)<br>
+      LP = 0.7912 × RiskScore + 0.0117 × Age + 0.0918 × Stage_II + 0.6126 × Stage_III + 1.2648 × Stage_IV<br>
+      生存概率 S(t) = S0(t)^exp(LP)，S0：1 年 0.9710 / 3 年 0.9370 / 5 年 0.9205<br>
+      <span class="warn-note">注意：本模块仅供科研课题演示，不可直接用于临床诊疗。</span>
     </div>
+  </section>
+
+  <!-- ===== 页脚 ===== -->
+  <footer>
+    <p><strong>使用说明：</strong>诊断模型：FTMT 与 LIFR 输入 DNA 甲基化 β 值（0~1，含端点），AFP 输入血清浓度，模型内自动取 log₂(AFP)，预测概率 ≥ 0.9018 判为阳性；预后模型：输入年龄（岁）、TNM 分期与 cg26437306（LIFR）甲基化 β 值（0~1），RiskScore = 2.3215 × β，联合 LP 公式预测 1/3/5 年生存概率，RiskScore ≥ 0.7246086 判为高风险组。</p>
+    <p><strong>数据来源：</strong>诊断模型系数、OR、95% CI、P 值与最优截断值来自课题组 Logistic 回归模型（m_comb）的 R 输出；预后模型系数与 C-index 来自 TCGA-HCC 数据 Cox 回归（n = 372）。</p>
+    <p class="disclaimer"><strong>免责声明：</strong>本工具仅供科研与教学参考，输出结果不构成临床诊断依据，具体诊疗决策请遵循临床指南并咨询专业医师。</p>
+  </footer>
+
 </div>
 
 <script>
-const cutoff = 0.7246086;
-function calcRisk(){
-    const cg1Val = parseFloat(document.getElementById("cg1").value);
-    const cg2Val = parseFloat(document.getElementById("cg2").value);
-    const resDom = document.getElementById("result");
+/* ===== 模型常量（来自 R 输出） ===== */
+var MODEL = {
+  b0:     12.4715,   // Intercept
+  bFTMT: -13.1720,   // FTMT 系数
+  bLIFR:  -2.0673,   // LIFR 系数
+  bAFP:    0.0669,   // log2(AFP) 系数
+  cutoff:  0.9018    // 最优预测概率阈值
+};
 
-    if(isNaN(cg1Val) || isNaN(cg2Val)){
-        resDom.style.display = "block";
-        resDom.className = "";
-        resDom.innerHTML = `<div class="warn">请输入两个CpG位点的β值！</div>`;
-        return;
-    }
-    if(cg1Val <0 || cg1Val>1 || cg2Val<0 || cg2Val>1){
-        resDom.style.display = "block";
-        resDom.className = "";
-        resDom.innerHTML = `<div class="warn">β值必须在0 ~ 1之间，请检查输入！</div>`;
-        return;
-    }
+var $ = function(id){ return document.getElementById(id); };
 
-    // RiskScore计算公式
-    const riskScore = 2.2495 * cg1Val - 1.0574 * cg2Val;
-    const riskGroup = riskScore >= cutoff ? "High risk（高风险组）" : "Low risk（低风险组）";
-    const cssClass = riskScore >= cutoff ? "high-risk" : "low-risk";
-
-    resDom.style.display = "block";
-    resDom.className = cssClass;
-    resDom.innerHTML = `
-        <div><strong>计算结果</strong></div>
-        <div style="margin-top:0.6rem;">RiskScore：${riskScore.toFixed(6)}</div>
-        <div style="margin-top:0.4rem;">风险分组：<strong>${riskGroup}</strong></div>
-        <div style="margin-top:0.4rem;">Cutoff阈值：0.7246086</div>
-    `;
+/* ===== 输入校验 ===== */
+function validateField(id, errId, name, opts){
+  var input = $(id);
+  var raw = input.value.trim();
+  var err = $(errId);
+  if(raw === ""){
+    err.textContent = "请输入" + name + "值";
+    input.classList.add("invalid");
+    return null;
+  }
+  var v = Number(raw);
+  if(!isFinite(v)){
+    err.textContent = "请输入有效数字";
+    input.classList.add("invalid");
+    return null;
+  }
+  if(opts.min !== null && v < opts.min){
+    err.textContent = name + "值不能小于 " + opts.min;
+    input.classList.add("invalid");
+    return null;
+  }
+  if(opts.max !== null && v > opts.max){
+    err.textContent = name + "值需在 " + opts.min + "~" + opts.max + " 范围内";
+    input.classList.add("invalid");
+    return null;
+  }
+  err.textContent = "";
+  input.classList.remove("invalid");
+  return v;
 }
+
+function clearFieldError(id, errId){
+  $(id).classList.remove("invalid");
+  $(errId).textContent = "";
+}
+
+function readInputs(){
+  var ftmt = validateField("ftmt", "ftmtErr", "FTMT β", {min:0, max:1});
+  var lifr = validateField("lifr", "lifrErr", "LIFR β", {min:0, max:1});
+  var afp  = validateField("afp",  "afpErr",  "AFP",    {min:0, max:null});
+  if(ftmt === null || lifr === null || afp === null){ return null; }
+  return {ftmt:ftmt, lifr:lifr, afp:afp};
+}
+
+/* ===== 计算 ===== */
+function compute(v){
+  var log2afp = Math.log2(v.afp);
+  var risk = MODEL.b0 + MODEL.bFTMT * v.ftmt + MODEL.bLIFR * v.lifr + MODEL.bAFP * log2afp;
+  var prob = 1 / (1 + Math.exp(-risk));
+  var pos = prob >= MODEL.cutoff;
+  return {
+    log2afp: log2afp,
+    risk: risk,
+    prob: prob,
+    pos: pos
+  };
+}
+
+function fmt(n, d){ return n.toFixed(d); }
+
+/* ===== 渲染结果 ===== */
+function render(r){
+  $("result").classList.add("show");
+
+  var verdict = r.pos ? "阳性（高风险）" : "阴性（低风险）";
+  $("verdictMain").textContent = verdict;
+  $("verdictProb").textContent = "概率" + (r.prob * 100).toFixed(2) + "%";
+  $("verdictRow").className = "verdict-row " + (r.pos ? "pos" : "neg");
+
+  $("riskVal").textContent = fmt(r.risk, 4);
+
+  /* 判读标尺 */
+  var pct = Math.max(0.5, Math.min(99.5, r.prob * 100));
+  var marker = $("gaugeMarker");
+  marker.style.left = pct + "%";
+  var bubble = $("gaugeBubble");
+  bubble.textContent = "概率" + (r.prob * 100).toFixed(2) + "%";
+  bubble.className = "gauge-bubble " + (r.pos ? "pos" : "neg");
+  var bleft = Math.max(10, Math.min(90, pct));
+  bubble.style.left = bleft + "%";
+  $("gaugeCutoff").style.left = (MODEL.cutoff * 100) + "%";
+  $("gaugeNeg").style.width = (MODEL.cutoff * 100) + "%";
+  $("gaugePos").style.width = (100 - MODEL.cutoff * 100) + "%";
+
+  /* 解读 */
+  var interp = $("interpretation");
+  interp.textContent = r.pos
+    ? "解读：预测概率 " + fmt(r.prob, 4) + " ≥ 阈值 0.9018，判为阳性（高风险）。提示该样本符合模型定义的病例组特征（低 FTMT / 低 LIFR、高 AFP 倾向），建议结合影像学与临床指标进一步评估。"
+    : "解读：预测概率 " + fmt(r.prob, 4) + " < 阈值 0.9018，判为阴性（低风险）。提示该样本更接近对照组特征，可结合其他指标综合判断。";
+}
+
+/* ===== 表单事件 ===== */
+$("calcForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  var v = readInputs();
+  if(v){ render(compute(v)); }
+});
+
+$("resetBtn").addEventListener("click", function(){
+  ["ftmt","lifr","afp"].forEach(function(id){
+    $(id).value = "";
+    clearFieldError(id, id + "Err");
+  });
+  $("result").classList.remove("show");
+});
+
+document.querySelectorAll(".examples .btn[data-example]").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    var ex = btn.getAttribute("data-example");
+    if(ex === "pos"){
+      $("ftmt").value = "0.2100"; $("lifr").value = "0.3500"; $("afp").value = "150";
+    } else {
+      $("ftmt").value = "0.9000"; $("lifr").value = "0.8000"; $("afp").value = "30";
+    }
+    ["ftmt","lifr","afp"].forEach(function(id){ clearFieldError(id, id + "Err"); });
+    var v = readInputs();
+    if(v){ render(compute(v)); }
+  });
+});
+
+["ftmt","lifr","afp"].forEach(function(id){
+  $(id).addEventListener("input", function(){ clearFieldError(id, id + "Err"); });
+});
+/* ===== 预后模型（联合 Cox：2-CpG + 年龄 + 分期） ===== */
+var PROG = {
+  b1: 2.3215, cutoff: 0.7246086, min: 0, max: 2.3215,
+  lpRisk: 0.7912, lpAge: 0.0117,
+  stageCoef: { I: 0, II: 0.0918, III: 0.6126, IV: 1.2648 },
+  s0: { y1: 0.9710, y3: 0.9370, y5: 0.9205 }
+};
+
+function readProgInputs(){
+  var age = validateField("age", "ageErr", "年龄", {min: 0, max: 120});
+  var cg1 = validateField("cg1", "cg1Err", "cg26437306 β", {min: 0, max: 1});
+  if(age === null || cg1 === null){ return null; }
+  return { age: age, stage: $("stage").value, cg1: cg1 };
+}
+
+function computeProg(v){
+  var rs = PROG.b1 * v.cg1;
+  var lp = PROG.lpRisk * rs + PROG.lpAge * v.age + (PROG.stageCoef[v.stage] || 0);
+  var expLp = Math.exp(lp);
+  return {
+    rs: rs,
+    lp: lp,
+    high: rs >= PROG.cutoff,
+    s1: Math.pow(PROG.s0.y1, expLp) * 100,
+    s3: Math.pow(PROG.s0.y3, expLp) * 100,
+    s5: Math.pow(PROG.s0.y5, expLp) * 100
+  };
+}
+
+function survClass(p){
+  return p >= 60 ? "ok" : (p >= 40 ? "mid" : "bad");
+}
+
+function renderProg(r){
+  var row = $("progVerdictRow");
+  row.className = "verdict-row " + (r.high ? "pos" : "neg");
+  $("progMain").textContent = r.high ? "高风险组 High risk" : "低风险组 Low risk";
+  $("progRs").textContent = "RiskScore " + r.rs.toFixed(6);
+  $("progLp").textContent = r.lp.toFixed(4);
+
+  var span = PROG.max - PROG.min;
+  var cPos = (PROG.cutoff - PROG.min) / span * 100;
+  $("progNeg").style.width = cPos + "%";
+  $("progPos").style.width = (100 - cPos) + "%";
+  $("progCutoff").style.left = cPos + "%";
+
+  var pct = Math.max(0.5, Math.min(99.5, (r.rs - PROG.min) / span * 100));
+  $("progMarker").style.left = pct + "%";
+  var bub = $("progBubble");
+  bub.textContent = "RiskScore " + r.rs.toFixed(4);
+  bub.className = "gauge-bubble " + (r.high ? "pos" : "neg");
+  var bl = Math.max(14, Math.min(86, pct));
+  bub.style.left = bl + "%";
+
+  [["progS1", r.s1], ["progS3", r.s3], ["progS5", r.s5]].forEach(function(item){
+    var el = $(item[0]);
+    el.textContent = item[1].toFixed(2) + "%";
+    el.className = "s-value " + survClass(item[1]);
+  });
+
+  var interp = $("progInterpretation");
+  interp.textContent = r.high
+    ? "解读：RiskScore " + r.rs.toFixed(6) + " ≥ 阈值 0.7246086，判为高风险组，总体生存预后较差，建议结合临床分期与诊疗方案综合评估。"
+    : "解读：RiskScore " + r.rs.toFixed(6) + " < 阈值 0.7246086，判为低风险组，总体生存预后相对较好。";
+  $("progResult").classList.add("show");
+}
+
+$("progForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  var v = readProgInputs();
+  if(v){ renderProg(computeProg(v)); }
+});
+
+$("progResetBtn").addEventListener("click", function(){
+  ["age","cg1"].forEach(function(id){
+    $(id).value = "";
+    clearFieldError(id, id + "Err");
+  });
+  $("stage").value = "I";
+  $("progResult").classList.remove("show");
+});
+
+document.querySelectorAll(".examples .btn[data-prog-example]").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    var ex = btn.getAttribute("data-prog-example");
+    if(ex === "high"){ $("age").value = "58"; $("stage").value = "III"; $("cg1").value = "0.4200"; }
+    else { $("age").value = "50"; $("stage").value = "I"; $("cg1").value = "0.1000"; }
+    ["age","cg1"].forEach(function(id){ clearFieldError(id, id + "Err"); });
+    var v = readProgInputs();
+    if(v){ renderProg(computeProg(v)); }
+  });
+});
+
+["age","cg1"].forEach(function(id){
+  $(id).addEventListener("input", function(){ clearFieldError(id, id + "Err"); });
+});
+
 </script>
 </body>
 </html>
