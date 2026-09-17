@@ -1,2 +1,2 @@
-# hcc-prediction
-TCGA-HCC 2-CpG甲基化预后预测网页
+# hcc
+HCC 甲基化诊断与预后评估工具
